@@ -203,13 +203,12 @@ contract ex8 is TESTINGEXPLOIT_FundManager {
             var bid = orders[book.bid];
             if(bid.price < price) break;
             
-            uint bidBalance = balanceOf(book.currency,(address)(book.bid));
             uint canFill = balanceOf(book.asset,(address)(nextOrder)) / book.units;
-            uint wantFill = bidBalance / bid.price;
+            uint wantFill = balanceOf(book.currency,(address)(book.bid)) / bid.price;
 
             if(canFill >= wantFill) // bid filled completely
             { 
-                appTransfer(book.currency,(address)(book.bid),msg.sender,bidBalance);
+                appTransfer(book.currency,(address)(book.bid),msg.sender,balanceOf(book.currency,(address)(book.bid)));
                 appTransfer(book.asset,(address)(nextOrder),bid.owner,wantFill * book.units);
                 uint tmp = book.bid; // pop bid
                 book.bid = next[book.bid];
@@ -271,8 +270,8 @@ contract ex8 is TESTINGEXPLOIT_FundManager {
             
             if(canFill >= wantFill) // fill ask completely
             {
-                appTransfer(book.currency,(address)(nextOrder),ask.owner,wantFill * ask.price);
-                appTransfer(book.asset,(address)(book.ask),msg.sender,wantFill* book.units);
+                appTransfer(book.asset,(address)(book.ask),msg.sender,askBalance);
+                appTransfer(book.currency,(address)(nextOrder),ask.owner,wantFill*ask.price);
                 
                 uint tmp =  book.ask; // pop ask
                 book.ask = next[book.ask];
@@ -281,8 +280,9 @@ contract ex8 is TESTINGEXPLOIT_FundManager {
             }
             else // partial fill
             {
-                appTransfer(book.currency,(address)(nextOrder),ask.owner,canFill * ask.price);
                 appTransfer(book.asset,(address)(book.ask),msg.sender,canFill*book.units);
+                appTransfer(book.currency,(address)(nextOrder),ask.owner,canFill*ask.price);
+                
                 return;
             }
         }
