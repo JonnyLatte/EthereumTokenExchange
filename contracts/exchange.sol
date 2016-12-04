@@ -326,7 +326,7 @@ contract ex8 is TESTINGEXPLOIT_FundManager {
         sell( bookid,  lotSize,  price, getPrevAsk( bookid,  price) ,  make);
     }
     
-    function ultraBuy(uint bookid, uint lotSize, uint price, uint prev, bool make) {
+    function ultraBuy(uint bookid, uint lotSize, uint price, bool make) {
         buy( bookid,  lotSize,  price, getPrevBid( bookid,  price) ,  make);
     }
 }
