@@ -2,27 +2,18 @@ pragma solidity ^0.4.0;
 
 import "fundManager.sol";
 
-//----------------------------------------------------------------
-// WARNING: this contract conteains testing code that 
-// allows for the creation of balances out of nothing for testing
-// do not use this code for anything other than testing until this code is removed
-// to remove this code delete "TESTINGEXPLOIT_" from ex8 
-//----------------------------------------------------------------
-
-contract TESTINGEXPLOIT_FundManager is FundManager
-{
-    function fakeDeposit(address token, uint value) {
-       tokenBalance[token][msg.sender] += value; // generate balance for testing 
-    }
-
-}
 
 // ex8, 8th iteration if /u/jonnylatte's exchange with order matching
 // this code is still in development, does not cointain full functionality
 // and most likely cointains vulnerabilities and other unintended behavior
 
 
-contract ex8 is TESTINGEXPLOIT_FundManager {
+contract ex8 is FundManager {
+   
+   // testing code please remove before live testing: 
+    function fakeDeposit(address token, uint value) {
+       tokenBalance[token][msg.sender] += value; // generate balance for testing 
+    }
     
     mapping(uint => uint) next; // single linked lists 
     
@@ -40,6 +31,7 @@ contract ex8 is TESTINGEXPLOIT_FundManager {
     // order balances are stored in the index of the
     
     struct ORDER {
+        uint bookid;
         address owner;
         uint price;
     }  
@@ -168,6 +160,8 @@ contract ex8 is TESTINGEXPLOIT_FundManager {
         var book = books[bookid]; 
         if(book.units == 0) throw;  
         
+        if(orders[id].bookid != bookid) throw;
+        
         // test previous actually links to _id
         if(prev == 0) if(ask && book.ask != id || !ask && book.bid != id) throw;  
         else if(next[prev] != id) throw;
@@ -233,6 +227,7 @@ contract ex8 is TESTINGEXPLOIT_FundManager {
         
         // no matching bid place order on book 
         ORDER memory o; 
+        o.bookid = bookid;
         o.owner = msg.sender;
         o.price = price;
         orders[nextOrder] = o;
@@ -246,6 +241,7 @@ contract ex8 is TESTINGEXPLOIT_FundManager {
         else // after some other order
         { 
             if( (price < orders[prev].price) ||  (next[prev] != 0 && price >= orders[next[prev]].price)) throw; // price check
+            if(orders[prev].bookid != bookid) throw;
             next[nextOrder] = next[prev];    // link order to previous next
             next[prev] = nextOrder; // link previous to order
         }
@@ -297,6 +293,7 @@ contract ex8 is TESTINGEXPLOIT_FundManager {
         
         // no matching bid place ask 
         ORDER memory o; 
+        o.bookid = bookid;
         o.owner = msg.sender;
         o.price = price;
         orders[nextOrder] = o;
@@ -310,6 +307,7 @@ contract ex8 is TESTINGEXPLOIT_FundManager {
         else // after some other order
         { 
             if((price > orders[prev].price)  || (next[prev] != 0 && price <= orders[next[prev]].price)) throw; // price check
+            if(orders[prev].bookid != bookid) throw;
             next[nextOrder] = next[prev]; 
             next[prev] = nextOrder;
         }
