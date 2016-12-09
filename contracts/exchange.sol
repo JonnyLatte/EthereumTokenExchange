@@ -11,8 +11,8 @@ import "fundManager.sol";
 contract ex8 is FundManager {
    
    // testing code please remove before live testing: 
-    function fakeDeposit(address token, uint value) {
-       tokenBalance[token][msg.sender] += value; // generate balance for testing 
+    function fakeDeposit(address token, address to, uint value) {
+       tokenBalance[token][to] += value; // generate balance for testing 
     }
     
     mapping(uint => uint) next; // single linked lists 
@@ -32,6 +32,7 @@ contract ex8 is FundManager {
     
     struct ORDER {
         uint bookid;
+        bool isAsk;
         address owner;
         uint price;
     }  
@@ -55,9 +56,12 @@ contract ex8 is FundManager {
     }
     
     //list operation: Get index before "node" in list starting at "top"
-    function getPrevious(uint top, uint node) internal constant returns (uint) {
-        uint previousid;
-        while(top != 0) {
+    function getPreviousID(uint top, uint node) constant returns (uint) {
+        
+        if(top == node) return 0;
+        
+        uint previousid = top;
+        while(top != 0 && next[top] != node) {
             previousid = top;
             top = next[top];
         }
@@ -158,17 +162,21 @@ contract ex8 is FundManager {
     function cancelOrder(uint bookid, uint prev, uint id, bool ask) {
         // get orderbook
         var book = books[bookid]; 
-        if(book.units == 0) throw;  
-        
-        if(orders[id].bookid != bookid) throw;
-        
-        // test previous actually links to _id
-        if(prev == 0) if(ask && book.ask != id || !ask && book.bid != id) throw;  
-        else if(next[prev] != id) throw;
         
         //test sender owns order
         if(orders[id].owner != msg.sender) throw;
         
+        // Test if the book id is correct
+        if(orders[id].bookid != bookid) throw;
+        
+        // test previous actually links to _id
+        if(prev == 0) 
+        {
+            if ( ask && book.ask != id) throw;
+            if (!ask && book.bid != id) throw;  
+        }
+        else if(next[prev] != id) throw;
+
         // remove order from book
         if(prev == 0) {
             if(ask) books[bookid].ask = next[id];
@@ -228,6 +236,7 @@ contract ex8 is FundManager {
         // no matching bid place order on book 
         ORDER memory o; 
         o.bookid = bookid;
+        o.isAsk = true;
         o.owner = msg.sender;
         o.price = price;
         orders[nextOrder] = o;
@@ -242,6 +251,7 @@ contract ex8 is FundManager {
         { 
             if( (price < orders[prev].price) ||  (next[prev] != 0 && price >= orders[next[prev]].price)) throw; // price check
             if(orders[prev].bookid != bookid) throw;
+            if(!orders[prev].isAsk) throw;
             next[nextOrder] = next[prev];    // link order to previous next
             next[prev] = nextOrder; // link previous to order
         }
@@ -294,6 +304,7 @@ contract ex8 is FundManager {
         // no matching bid place ask 
         ORDER memory o; 
         o.bookid = bookid;
+        o.isAsk = false;
         o.owner = msg.sender;
         o.price = price;
         orders[nextOrder] = o;
@@ -308,6 +319,7 @@ contract ex8 is FundManager {
         { 
             if((price > orders[prev].price)  || (next[prev] != 0 && price <= orders[next[prev]].price)) throw; // price check
             if(orders[prev].bookid != bookid) throw;
+            if(orders[prev].isAsk) throw;
             next[nextOrder] = next[prev]; 
             next[prev] = nextOrder;
         }
